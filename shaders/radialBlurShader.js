@@ -56,8 +56,8 @@ export const radialBlurShader = {
       
       for (int i = 0; i < samples; i++) {
         float t = float(i) / float(samples - 1);
-        float radius = mix(0.0, 0.1 * blurAmount, t); // Gradually increase sample radius
-        float angle = t * 3.14159 * 3.0; // Sample in a circular pattern
+        float radius = mix(0.0, 0.9 * blurAmount, t); // Gradually increase sample radius
+        float angle = t * 3.14159 * 2.0; // Sample in a circular pattern
         
         vec2 offset = vec2(cos(angle), sin(angle)) * radius;
         color += texture2D(tDiffuse, uv + offset);
@@ -75,7 +75,7 @@ export const radialBlurShader = {
         vec4 nextColor = vec4(0.0);
         for (int i = 0; i < samples; i++) {
           float t = float(i) / float(samples - 1);
-          float radius = mix(0.0, 0.05 * blurAmount, t);
+          float radius = mix(0.0, 0.9 * blurAmount, t);
           float angle = t * 3.14159 * 2.0;
           
           vec2 offset = vec2(cos(angle), sin(angle)) * radius;
