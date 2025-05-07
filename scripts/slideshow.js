@@ -1,13 +1,12 @@
-import { heatHazeShader } from '../shaders/heatHazeShader.js';
-import { windShader } from '../shaders/windShader.js';
-import { radialBlurShader } from '../shaders/radialBlurShader.js';
-import { textTransitionShader } from '../shaders/textTransitionShader.js';
+import { setupScene, createMaterials, createQuads } from './sceneSetup.js';
+import { createImageStateMachine } from './imageStateMachine.js';
+import { createTextStateMachine } from './textStateMachine.js';
 
+// Image and text sequences
 const imgSEQ = [
   'images/page-1.webp',
-  'images/page-2.webp',
   'images/page-3.webp',
-  'images/page-4.webp',
+  'images/page-2.webp',
   'images/page-5.webp',
   'images/page-6.webp',
 ];
@@ -21,237 +20,71 @@ const textSEQ = [
   'images/text6.webp',
 ];
 
-// Create separate canvases for image and text layers
-const imageCanvas = document.createElement('canvas');
-const textCanvas = document.createElement('canvas');
-const container = document.querySelector('.canvas-container');
-container.appendChild(imageCanvas);
-container.appendChild(textCanvas);
-
-// Set positioning for text canvas to overlay on image canvas
-textCanvas.style.position = 'absolute';
-textCanvas.style.top = '0';
-textCanvas.style.left = '50%';
-textCanvas.style.transform = 'translateX(-50%)';
-textCanvas.style.pointerEvents = 'none'; // Allow clicks to pass through
-
-const IMAGE_WIDTH = 1080;
-const IMAGE_HEIGHT = 2216;
-const IMAGE_ASPECT = IMAGE_WIDTH / IMAGE_HEIGHT;
-
-let imageCamera, textCamera, imageQuad, textQuad;
-let nextImageIndex = 0;
-
-function resizeRendererToDisplaySize() {
-  const canvasHeight = window.innerHeight;
-  const canvasWidth = Math.round(canvasHeight * (9 / 16.5));
-  
-  // Resize both canvases
-  imageCanvas.width = canvasWidth;
-  imageCanvas.height = canvasHeight;
-  textCanvas.width = canvasWidth;
-  textCanvas.height = canvasHeight;
-  
-  imageRenderer.setSize(canvasWidth, canvasHeight, false);
-  textRenderer.setSize(canvasWidth, canvasHeight, false);
-  // Center canvas via CSS (handled in styles.css)
-}
-
-// Create separate renderers for image and text
-const imageRenderer = new THREE.WebGLRenderer({ canvas: imageCanvas, alpha: false });
-const textRenderer = new THREE.WebGLRenderer({ canvas: textCanvas, alpha: true });
-textRenderer.setClearColor(0x000000, 0); // Transparent background for text layer
-
-// Set up cameras
-imageCamera = new THREE.OrthographicCamera(-IMAGE_WIDTH / IMAGE_HEIGHT, IMAGE_WIDTH / IMAGE_HEIGHT, 1, -1, 0, 1);
-textCamera = new THREE.OrthographicCamera(-IMAGE_WIDTH / IMAGE_HEIGHT, IMAGE_WIDTH / IMAGE_HEIGHT, 1, -1, 0, 1);
-
-resizeRendererToDisplaySize();
-window.addEventListener('resize', resizeRendererToDisplaySize);
-
-// Create scenes
-const imageScene = new THREE.Scene();
-const textScene = new THREE.Scene();
-
-// Set up texture loader
-const textureLoader = new THREE.TextureLoader();
-
-// Load textures for all images and text
-const preloadTextures = () => {
-  const imgTextures = imgSEQ.map(src => textureLoader.load(src));
-  const textTextures = textSEQ.map(src => textureLoader.load(src));
-  return { imgTextures, textTextures };
-};
-
-const { imgTextures, textTextures } = preloadTextures();
-
-// Create materials for images with radial blur
-const imageBaseMaterials = imgTextures.map(texture => {
-  const material = new THREE.ShaderMaterial({
-    uniforms: {
-      ...radialBlurShader.uniforms,
-      tDiffuse: { value: texture },
-    },
-    vertexShader: radialBlurShader.vertexShader,
-    fragmentShader: radialBlurShader.fragmentShader
-  });
-  // Initialize with maximum blur that will transition to zero
-  material.uniforms.uBlurStrength.value = 1.0;
-  return material;
-});
-
-// Create materials for text transitions
-const textBaseMaterials = textTextures.map(texture => {
-  const material = new THREE.ShaderMaterial({
-    uniforms: {
-      ...textTransitionShader.uniforms,
-      tDiffuse: { value: texture },
-    },
-    vertexShader: textTransitionShader.vertexShader,
-    fragmentShader: textTransitionShader.fragmentShader,
-    transparent: true
-  });
-  // Start with zero opacity
-  material.uniforms.uTransitionProgress.value = 0.0;
-  return material;
-});
-
-// Initialize with the first image and text
-imageQuad = new THREE.Mesh(
-  new THREE.PlaneGeometry(IMAGE_ASPECT * 2, 2),
-  imageBaseMaterials[0]
-);
-imageScene.add(imageQuad);
-
-textQuad = new THREE.Mesh(
-  new THREE.PlaneGeometry(IMAGE_ASPECT * 2, 2),
-  textBaseMaterials[0]
-);
-textScene.add(textQuad);
-
-// Animation phases and timing
-let currentIndex = 0;
-let phase = 'fadein'; // 'fadein', 'stay', 'fadeout', 'transition'
-let phaseTime = 0;
+// Shared constants
 const bpm = 123;
-const beat = 60 / bpm;
-const fadeInBeats = 8, stayBeats = 2, fadeOutBeats = 4, transitionBeats = 2;
-const fadeInTime = fadeInBeats * beat;
-const stayTime = stayBeats * beat;
-const fadeOutTime = fadeOutBeats * beat;
-const transitionTime = transitionBeats * beat;
-const totalTime = fadeInTime + stayTime + fadeOutTime + transitionTime;
 
-// Phase handlers for images and text
-const imagePhaseHandlers = {
-  fadein: () => {
-    const progress = Math.min(phaseTime / fadeInTime, 1);
-    // Apply a non-linear easing to make blur reduction more gradual
-    // Using a cubic function: progress³ makes the blur reduction start slower
-    // const eased = Math.pow(progress, 3);
-    const eased = progress;
-    const blurStrength = 1.0 - eased;
-    imageQuad.material.uniforms.uBlurStrength.value = blurStrength;
-    
-    if (phaseTime >= fadeInTime) {
-      phase = 'stay';
-      phaseTime = 0;
-    }
-  },
-  stay: () => {
-    // Keep blur at minimum during stay phase
-    imageQuad.material.uniforms.uBlurStrength.value = 0.0;
-    
-    if (phaseTime >= stayTime) {
-      phase = 'fadeout';
-      phaseTime = 0;
-    }
-  },
-  fadeout: () => {
-    const progress = Math.min(phaseTime / fadeOutTime, 1);
-    const blurStrength = progress; // Blur from 0.0 (none) to 1.0 (full)
-    imageQuad.material.uniforms.uBlurStrength.value = blurStrength;
-    
-    if (phaseTime >= fadeOutTime) {
-      phase = 'transition';
-      phaseTime = 0;
-      prepareForTransition();
-    }
-  },
-  transition: () => {
-    const progress = Math.min(phaseTime / transitionTime, 1);
-    imageQuad.material.uniforms.uTransitionProgress.value = progress;
-    
-    if (phaseTime >= transitionTime) {
-      // Move to next image
-      currentIndex = (currentIndex + 1) % imgSEQ.length;
-      imageQuad.material = imageBaseMaterials[currentIndex];
-      textQuad.material = textBaseMaterials[currentIndex];
-      
-      // Reset for fade-in of new image
-      imageQuad.material.uniforms.uBlurStrength.value = 1.0;
-      textQuad.material.uniforms.uTransitionProgress.value = 0.0;
-      
-      phase = 'fadein';
-      phaseTime = 0;
-    }
-  }
-};
+// Set up scene components
+const container = document.querySelector('.canvas-container');
+const {
+  imageRenderer, textRenderer,
+  imageCamera, textCamera,
+  imageScene, textScene,
+  IMAGE_ASPECT
+} = setupScene(container);
 
-const textPhaseHandlers = {
-  fadein: () => {
-    const progress = Math.min(phaseTime / fadeInTime, 1);
-    textQuad.material.uniforms.uTransitionProgress.value = progress;
-  },
-  stay: () => {
-    // Keep text fully visible during stay
-    textQuad.material.uniforms.uTransitionProgress.value = 1.0;
-  },
-  fadeout: () => {
-    const progress = Math.min(phaseTime / fadeOutTime, 1);
-    // Start fading out text - from 1.0 to 0.0
-    textQuad.material.uniforms.uTransitionProgress.value = 1.0 - progress;
-  },
-  transition: () => {
-    // Text is fully transparent during transition, handled by image transition
-    textQuad.material.uniforms.uTransitionProgress.value = 0.0;
-  }
-};
+// Create materials
+const {
+  imgTextures, textTextures,
+  imageBaseMaterials, textBaseMaterials
+} = createMaterials(imgSEQ, textSEQ);
 
-// Function to prepare materials for transition
-function prepareForTransition() {
-  const nextIndex = (currentIndex + 1) % imgSEQ.length;
-  
-  // Set up image transition
-  imageQuad.material.uniforms.tNextTexture.value = imgTextures[nextIndex];
-  imageQuad.material.uniforms.uTransitionProgress.value = 0.0;
-  
-  // Text transition is handled separately
-  textQuad.material.uniforms.tNextTexture.value = textTextures[nextIndex];
-}
+// Create quads
+const {
+  imageQuad, textQuad1, textQuad2
+} = createQuads(imageScene, textScene, IMAGE_ASPECT, imageBaseMaterials[0]);
 
-// Animation clock
+// Initialize state machines
+const imageStateMachine = createImageStateMachine(bpm, imageQuad, imgTextures, imageBaseMaterials);
+const textStateMachine = createTextStateMachine(bpm, textQuad1, textQuad2, textBaseMaterials);
+
+// Animation control
 let clock = new THREE.Clock();
 let animationFrameId = null; // To control the animation loop
 let animationRunning = false; // To prevent multiple simultaneous animations
+let savedState = null; // Save state when stopping animation
 
 function startAnimationCycle() {
   if (animationRunning) return; // Don't start if already running
   animationRunning = true;
 
-  // Reset state for a new cycle
-  currentIndex = 0;
-  phase = 'fadein';
-  phaseTime = 0;
-  clock.stop(); // Reset clock
-  clock.start();
-
-  // Ensure first image and text are set up correctly
-  imageQuad.material = imageBaseMaterials[currentIndex];
-  textQuad.material = textBaseMaterials[currentIndex];
-  imageQuad.material.uniforms.uBlurStrength.value = 1.0; // Start with full blur
-  textQuad.material.uniforms.uTransitionProgress.value = 0.0; // Start with text transparent
-
+  if (savedState) {
+    // Resume from where we left off
+    console.log("Resuming animation from saved state");
+    
+    // Restore state to both state machines
+    imageStateMachine.setState(savedState.imageState);
+    textStateMachine.setState(savedState.textState);
+    
+    // Restore visual state for image
+    imageQuad.material = imageBaseMaterials[savedState.imageState.currentImgIndex];
+    imageQuad.material.uniforms.uBlurStrength.value = savedState.blurStrength;
+    
+    savedState = null; // Clear saved state
+  } else {
+    // Start fresh
+    console.log("Starting new animation cycle");
+    
+    // Set up initial image
+    imageQuad.material = imageBaseMaterials[0];
+    imageQuad.material.uniforms.uBlurStrength.value = 1.0; // Start fully blurred
+    imageStateMachine.setImage(0, imageBaseMaterials);
+    
+    // Initialize text state machine
+    textStateMachine.initialize();
+  }
+  
+  clock.start(); // Start/resume the clock
+  
   // Cancel any previous animation frame to avoid conflicts
   if (animationFrameId) {
     cancelAnimationFrame(animationFrameId);
@@ -262,39 +95,84 @@ function startAnimationCycle() {
 function animate() {
   animationFrameId = requestAnimationFrame(animate); // Store the frame ID
   const delta = clock.getDelta();
-  phaseTime += delta;
+  
+  // Update image state machine
+  const imageIndexChanged = imageStateMachine.update(delta);
+  
+  // Update text state machine, passing current image index for synchronization
+  textStateMachine.update(delta, imageStateMachine.currentIndex);
 
-  // Update debug info if needed
-  const debugDiv = document.getElementById('debug-info');
-  if (debugDiv) {
+  // Log debug info to console - only occasionally to avoid flooding
+  if (Math.floor(performance.now() / 100) % 5 === 0) {
     const blurVal = imageQuad.material.uniforms.uBlurStrength.value;
-    debugDiv.textContent = `Phase: ${phase}, Blur: ${blurVal.toFixed(3)}, Image: ${currentIndex + 1}/${imgSEQ.length}`;
+    const text1Val = textQuad1.visible ? 
+      textQuad1.material.uniforms.uTransitionProgress.value.toFixed(2) : "0.00";
+    const text2Val = textQuad2.visible ? 
+      textQuad2.material.uniforms.uTransitionProgress.value.toFixed(2) : "0.00";
+    
+    console.log(
+      `IMG[${imageStateMachine.phase}:${imageStateMachine.currentIndex + 1}/${imgSEQ.length}] ` +
+      `Blur: ${blurVal.toFixed(2)}, ` +
+      `TXT[${textStateMachine.phase}:${textStateMachine.currentIndex + 1}/${textSEQ.length}] ` +
+      `T1: ${text1Val}, T2: ${text2Val}`
+    );
   }
-
-  // Handle phase updates for both image and text
-  if (imagePhaseHandlers[phase]) imagePhaseHandlers[phase]();
-  if (textPhaseHandlers[phase]) textPhaseHandlers[phase]();
 
   // Render both scenes
   imageRenderer.render(imageScene, imageCamera);
   textRenderer.render(textScene, textCamera);
 
   // Check if one full cycle is complete
-  if (currentIndex === imgSEQ.length - 1 && phase === 'transition' && phaseTime >= transitionTime) {
+  if (imageStateMachine.isComplete(imgSEQ.length) && 
+      textStateMachine.isComplete(textSEQ.length)) {
     cancelAnimationFrame(animationFrameId); // Stop the animation loop
     animationRunning = false; // Allow re-triggering
-    // Optionally, reset to a specific state or leave as is
-    console.log("Animation cycle complete.");
+    console.log("Animation cycle complete - reached end of all images and texts.");
   }
 }
 
-// Add event listener to the start button
+// Function to stop the animation and save state
+function stopAnimationCycle() {
+  if (!animationRunning) return;
+  
+  // Save current state from both state machines
+  savedState = {
+    imageState: imageStateMachine.getState(),
+    textState: textStateMachine.getState(),
+    blurStrength: imageQuad.material.uniforms.uBlurStrength.value
+  };
+  
+  // Cancel animation frame
+  if (animationFrameId) {
+    cancelAnimationFrame(animationFrameId);
+    animationFrameId = null;
+  }
+  
+  clock.stop(); // Pause the clock
+  animationRunning = false;
+  console.log("Animation paused by user - state saved");
+  
+  // Toggle button visibility
+  if (startButton && stopButton) {
+    startButton.style.display = 'block';
+    stopButton.style.display = 'none';
+  }
+}
+
+// Add event listeners to buttons
 const startButton = document.getElementById('startButton');
-if (startButton) {
+const stopButton = document.getElementById('stopButton');
+
+if (startButton && stopButton) {
+  // Start button event listener
   startButton.addEventListener('click', () => {
     startButton.style.display = 'none';
+    stopButton.style.display = 'block';
     startAnimationCycle();
   });
+  
+  // Stop button event listener
+  stopButton.addEventListener('click', stopAnimationCycle);
 } else {
-  console.error("Start button not found");
+  console.error("Buttons not found");
 }
