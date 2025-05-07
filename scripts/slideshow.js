@@ -146,7 +146,10 @@ const totalTime = fadeInTime + stayTime + fadeOutTime + transitionTime;
 const imagePhaseHandlers = {
   fadein: () => {
     const progress = Math.min(phaseTime / fadeInTime, 1);
-    const blurStrength = 1.0 - progress; // Blur from 1.0 (full) to 0.0 (none)
+    // Apply a non-linear easing to make blur reduction more gradual
+    // Using a cubic function: progress³ makes the blur reduction start slower
+    const eased = Math.pow(progress, 3);
+    const blurStrength = 1.0 - eased;
     imageQuad.material.uniforms.uBlurStrength.value = blurStrength;
     
     if (phaseTime >= fadeInTime) {

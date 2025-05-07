@@ -1,7 +1,7 @@
 export const radialBlurShader = {
   uniforms: {
     tDiffuse: { value: null },
-    uBlurRadius: { value: 0.7 }, // Half width as requested
+    uBlurRadius: { value: 1 }, // Full width
     uBlurStrength: { value: 1.0 }, // Blur intensity (0 = no blur, 1 = full blur)
     uCenterX: { value: 0.5 }, // Center of the blur effect (0-1)
     uCenterY: { value: 0.5 }, // Center of the blur effect (0-1)
@@ -52,12 +52,12 @@ export const radialBlurShader = {
       
       // Sample colors with different blur radii for radial blur effect
       vec4 color = vec4(0.0);
-      const int samples = 20; // Number of samples for blur
+      const int samples = 100; // Number of samples for blur
       
       for (int i = 0; i < samples; i++) {
         float t = float(i) / float(samples - 1);
-        float radius = mix(0.0, 0.05 * blurAmount, t); // Gradually increase sample radius
-        float angle = t * 3.14159 * 2.0; // Sample in a circular pattern
+        float radius = mix(0.0, 0.1 * blurAmount, t); // Gradually increase sample radius
+        float angle = t * 3.14159 * 3.0; // Sample in a circular pattern
         
         vec2 offset = vec2(cos(angle), sin(angle)) * radius;
         color += texture2D(tDiffuse, uv + offset);
