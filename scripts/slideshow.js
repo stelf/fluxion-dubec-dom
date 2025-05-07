@@ -133,9 +133,9 @@ textScene.add(textQuad);
 let currentIndex = 0;
 let phase = 'fadein'; // 'fadein', 'stay', 'fadeout', 'transition'
 let phaseTime = 0;
-const bpm = 125;
+const bpm = 123;
 const beat = 60 / bpm;
-const fadeInBeats = 12, stayBeats = 6, fadeOutBeats = 4, transitionBeats = 2;
+const fadeInBeats = 8, stayBeats = 2, fadeOutBeats = 4, transitionBeats = 2;
 const fadeInTime = fadeInBeats * beat;
 const stayTime = stayBeats * beat;
 const fadeOutTime = fadeOutBeats * beat;
@@ -232,9 +232,35 @@ function prepareForTransition() {
 
 // Animation clock
 let clock = new THREE.Clock();
+let animationFrameId = null; // To control the animation loop
+let animationRunning = false; // To prevent multiple simultaneous animations
+
+function startAnimationCycle() {
+  if (animationRunning) return; // Don't start if already running
+  animationRunning = true;
+
+  // Reset state for a new cycle
+  currentIndex = 0;
+  phase = 'fadein';
+  phaseTime = 0;
+  clock.stop(); // Reset clock
+  clock.start();
+
+  // Ensure first image and text are set up correctly
+  imageQuad.material = imageBaseMaterials[currentIndex];
+  textQuad.material = textBaseMaterials[currentIndex];
+  imageQuad.material.uniforms.uBlurStrength.value = 1.0; // Start with full blur
+  textQuad.material.uniforms.uTransitionProgress.value = 0.0; // Start with text transparent
+
+  // Cancel any previous animation frame to avoid conflicts
+  if (animationFrameId) {
+    cancelAnimationFrame(animationFrameId);
+  }
+  animate(); // Start the animation loop
+}
 
 function animate() {
-  requestAnimationFrame(animate);
+  animationFrameId = requestAnimationFrame(animate); // Store the frame ID
   const delta = clock.getDelta();
   phaseTime += delta;
 
@@ -252,7 +278,23 @@ function animate() {
   // Render both scenes
   imageRenderer.render(imageScene, imageCamera);
   textRenderer.render(textScene, textCamera);
+
+  // Check if one full cycle is complete
+  if (currentIndex === imgSEQ.length - 1 && phase === 'transition' && phaseTime >= transitionTime) {
+    cancelAnimationFrame(animationFrameId); // Stop the animation loop
+    animationRunning = false; // Allow re-triggering
+    // Optionally, reset to a specific state or leave as is
+    console.log("Animation cycle complete.");
+  }
 }
 
-// Start animation
-animate();
+// Add event listener to the start button
+const startButton = document.getElementById('startButton');
+if (startButton) {
+  startButton.addEventListener('click', () => {
+    startButton.style.display = 'none';
+    startAnimationCycle();
+  });
+} else {
+  console.error("Start button not found");
+}
