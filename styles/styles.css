@@ -8,7 +8,7 @@ html, body {
 }
 
 body {
-  background-color: rgb(1, 7, 19); /* Updated to specified background color */
+    background-color: rgb(122, 72, 192); 
 }
 
 .canvas-container {
@@ -66,4 +66,15 @@ canvas {
   font-size: 1.2em;
   margin-top: 16px;
   font-family: monospace;
+}
+
+#startButton {
+  position: fixed;
+  left: 5em;
+  top: 5vw; /* Using vh for vertical positioning */
+  transform: translateX(-50%); /* Horizontally center the button */
+  padding: 10px 20px;
+  font-size: 16px;
+  cursor: pointer;
+  z-index: 1000; /* Ensure it's above other elements */
 }
