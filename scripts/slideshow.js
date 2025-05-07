@@ -135,7 +135,7 @@ let phase = 'fadein'; // 'fadein', 'stay', 'fadeout', 'transition'
 let phaseTime = 0;
 const bpm = 125;
 const beat = 60 / bpm;
-const fadeInBeats = 6, stayBeats = 6, fadeOutBeats = 4, transitionBeats = 2;
+const fadeInBeats = 12, stayBeats = 6, fadeOutBeats = 4, transitionBeats = 2;
 const fadeInTime = fadeInBeats * beat;
 const stayTime = stayBeats * beat;
 const fadeOutTime = fadeOutBeats * beat;

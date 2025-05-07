@@ -1,7 +1,7 @@
 export const radialBlurShader = {
   uniforms: {
     tDiffuse: { value: null },
-    uBlurRadius: { value: 0.5 }, // Half width as requested
+    uBlurRadius: { value: 0.7 }, // Half width as requested
     uBlurStrength: { value: 1.0 }, // Blur intensity (0 = no blur, 1 = full blur)
     uCenterX: { value: 0.5 }, // Center of the blur effect (0-1)
     uCenterY: { value: 0.5 }, // Center of the blur effect (0-1)
