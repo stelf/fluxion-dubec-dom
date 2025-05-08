@@ -2,6 +2,10 @@ import { setupScene, createMaterials, createQuads } from './sceneSetup.js';
 import { createImageStateMachine } from './imageStateMachine.js';
 import { createTextStateMachine } from './textStateMachine.js';
 
+// Audio setup
+const backgroundAudio = new Audio('audio/fluxion-horders-descent-cut-limited.wav');
+backgroundAudio.loop = true;
+
 // Image and text sequences
 const imgSEQ = [
   'images/page-1.webp',
@@ -152,6 +156,10 @@ function stopAnimationCycle() {
   animationRunning = false;
   console.log("Animation paused by user - state saved");
   
+  // Stop audio playback
+  backgroundAudio.pause();
+  backgroundAudio.currentTime = 0;
+  
   // Toggle button visibility
   if (startButton && stopButton) {
     startButton.style.display = 'block';
@@ -169,6 +177,11 @@ if (startButton && stopButton) {
     startButton.style.display = 'none';
     stopButton.style.display = 'block';
     startAnimationCycle();
+    
+    // Start audio playback
+    backgroundAudio.play().catch(error => {
+      console.error("Audio playback failed:", error);
+    });
   });
   
   // Stop button event listener
