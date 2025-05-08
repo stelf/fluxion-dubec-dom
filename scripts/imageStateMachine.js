@@ -12,8 +12,8 @@ export function createImageStateMachine(bpm, imageQuad, imgTextures, imageBaseMa
   // Animation timing constants
   const beat = 60 / bpm;
   const imgFadeInBeats = 8;
-  const imgStayBeats = 2;
-  const imgFadeOutBeats = 4;
+  const imgStayBeats = 0;
+  const imgFadeOutBeats = 8;
   
   const imgFadeInTime = imgFadeInBeats * beat;
   const imgStayTime = imgStayBeats * beat;

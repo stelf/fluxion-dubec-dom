@@ -13,9 +13,9 @@ export const TextStates = {
 export function createTextStateMachine(bpm, textQuad1, textQuad2, textBaseMaterials) {
   // Animation timing constants
   const beat = 60 / bpm;
-  const textFadeInBeats = 2;
+  const textFadeInBeats = 4;
   const textStayBeats = 2;
-  const addNewTextBeats = 2;
+  const addNewTextBeats = 4;
   const bothStayBeats = 2;
   const bothOutBeats = 4;
   

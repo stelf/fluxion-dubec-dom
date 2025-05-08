@@ -12,12 +12,12 @@ const imgSEQ = [
 ];
 
 const textSEQ = [
-  'images/text1.webp',
   'images/text2.webp',
+  'images/text1.webp',
   'images/text3.webp',
   'images/text4.webp',
-  'images/text5.webp',
-  'images/text6.webp',
+  'images/text7.webp',
+  'images/text8.webp',
 ];
 
 // Shared constants
