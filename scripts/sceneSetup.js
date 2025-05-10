@@ -2,8 +2,8 @@ import { radialBlurShader } from '../shaders/radialBlurShader.js';
 import { textTransitionShader } from '../shaders/textTransitionShader.js';
 
 // Constants for image dimensions and aspect ratio
-const IMAGE_WIDTH = 1080;
-const IMAGE_HEIGHT = 2216;
+const IMAGE_WIDTH = 1024;
+const IMAGE_HEIGHT = 2217;
 const IMAGE_ASPECT = IMAGE_WIDTH / IMAGE_HEIGHT;
 
 // Function to create and set up canvases, renderers, scenes, and cameras
@@ -45,17 +45,22 @@ export function setupScene(container) {
 
   // Set up resize handler
   function resizeRendererToDisplaySize() {
-    const canvasHeight = window.innerHeight;
-    const canvasWidth = Math.round(canvasHeight * (9 / 16.5));
+    // Account for padding (5px on each side) and border (1px on each side)
+    const padding = 5 * 2; // 5px padding on each side
+    const border = 1 * 2; // 1px border on each side
+    
+    // Calculate available height and width
+    const availableHeight = window.innerHeight - padding - border;
+    const availableWidth = Math.round(availableHeight * IMAGE_ASPECT);
     
     // Resize both canvases
-    imageCanvas.width = canvasWidth;
-    imageCanvas.height = canvasHeight;
-    textCanvas.width = canvasWidth;
-    textCanvas.height = canvasHeight;
+    imageCanvas.width = availableWidth;
+    imageCanvas.height = availableHeight;
+    textCanvas.width = availableWidth;
+    textCanvas.height = availableHeight;
     
-    imageRenderer.setSize(canvasWidth, canvasHeight, false);
-    textRenderer.setSize(canvasWidth, canvasHeight, false);
+    imageRenderer.setSize(availableWidth, availableHeight, false);
+    textRenderer.setSize(availableWidth, availableHeight, false);
   }
 
   // Initial resize
@@ -96,7 +101,7 @@ export function createMaterials(imgSEQ, textSEQ) {
       uCenterY: { value: 0.5 },
       uTransitionProgress: { value: 0.0 },
       tNextTexture: { value: null },
-      uBackgroundColor: { value: [1/255, 7/255, 19/255] }
+      uBackgroundColor: { value: [2/255, 10/255, 25/255] }
     };
     
     const material = new THREE.ShaderMaterial({
@@ -114,7 +119,7 @@ export function createMaterials(imgSEQ, textSEQ) {
     const uniforms = {
       tDiffuse: { value: texture },
       uTransitionProgress: { value: 0.0 },
-      uBackgroundColor: { value: [1/255, 7/255, 19/255] },
+      uBackgroundColor: { value: [2/255, 10/255, 25/255] },
       tNextTexture: { value: null }
     };
     
