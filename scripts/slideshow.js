@@ -189,3 +189,26 @@ if (startButton && stopButton) {
 } else {
   console.error("Buttons not found");
 }
+
+// Make the canvas container clickable to return to the main site
+if (container) {
+    container.addEventListener('click', () => {
+        // Optional: Stop animation before navigating
+        // if (animationRunning) {
+        //    stopAnimationCycle();
+        // }
+        window.location.href = '/index.html';
+    });
+    container.style.cursor = 'pointer'; // Indicate it's clickable
+}
+
+// Auto-click the start button on page load
+// DOMContentLoaded ensures the button and its listeners are ready
+document.addEventListener('DOMContentLoaded', () => {
+    if (startButton && typeof startButton.click === 'function') {
+        console.log("Attempting to auto-click start button...");
+        startButton.click();
+    } else {
+        console.error("Start button not available for auto-click or not yet initialized.");
+    }
+});
